@@ -1,17 +1,41 @@
 
-const express = require('express');
-const app = express();
+const fs = require('fs');
 const http = require('http')
-const util = require('./modules/utils')
-PORT = `http://gnhodlixma.us18.qoddiapp.com`
+const util = require('./modules/utils');
+url = require('url')
+PORT = process.env.PORT || 8080
 
-app.get('/', function (req, res) {
-    const name = req.query.name;
-    const currentDate = util.myServerDateTime()
-    const message = `Hello ${name}, the current server date/time is ${currentDate}`
-    res.send(`<b> ${message || "hello"} </b>`)
-})
+http.createServer((req, res) => {
+    const link = url.parse(req.url, true)
+    const query = link.query;
+    const pathname = link.pathname;
+    if (query.text && pathname == '/writeFile/') {
+        const text = query.text;
+        fs.appendFile('file.txt', text, (err) => {
+            if (err) {
+                res.writeHead(500, {'Content-Type': 'text/html'})
+                res.end('Error writing file')
+            } else {
+                res.writeHead(200, {'Content-Type': 'text/html'})
+                res.end('File written successfully to file.txt')
+            }
+          });
+    } else if (pathname.startsWith('/readFile') ) {
+        let filePath = pathname.split('/')[2];
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.writeHead(200, {'Content-Type': 'text/html'})
+                res.end("File Doesn't exist")
+            }
+            res.writeHead(200, {'Content-Type': 'text/html'})
+            res.end(data)
+        })
+    } else {
+        const name = query.name;
+        const message = `Hello ${name || "Nobody"} the current server date/time is ${util.myServerDateTime()}`
 
-app.listen(PORT, () => {
-    console.log('Server running on port 3001.')
-})
+        res.writeHead(200, {'Content-Type': 'text/html'})
+        res.write(`<p style='color:blue;'> ${message} </p>`)
+        res.end()
+    }
+}).listen(PORT)
